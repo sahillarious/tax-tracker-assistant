@@ -16,7 +16,11 @@ import extractor
 
 def load_tracker(path=None) -> list:
     with open(path or config.TRACKER_CSV, newline="", encoding="utf-8") as f:
-        return list(csv.DictReader(f))
+        rows = list(csv.DictReader(f))
+    for row in rows:  # an older tracker file without the current_employer column still works
+        for field in config.SET_FIELDS:
+            row.setdefault(field, "")
+    return rows
 
 
 def load_rules(path=None) -> list:
@@ -45,7 +49,8 @@ def _result(email, mode, status, flags, row=None, extraction=None, dropped=None,
             "reasons": [f["message"] for f in flags], "client": row,
             "extraction": extraction or {k: [] for k in extractor.EMPTY},
             "dropped": dropped or [], "mode": mode, "error": error, "temperature_applied": temp,
-            "changes": changes or {"docs_received": [], "docs_missing": [], "life_changes": []}}
+            "changes": changes or {"docs_received": [], "docs_missing": [], "life_changes": [],
+                                   "current_employer": None}}
 
 
 def process_email(email: dict, mode: str = None, tracker: list = None, rules: list = None,
@@ -107,14 +112,16 @@ def process_email(email: dict, mode: str = None, tracker: list = None, rules: li
             continue
         missing.append(e)
 
-    # 5. Compare with the tracker (flag only, never overwrite).
+    # 5. Compare with the tracker: a new employer is flagged for a person to confirm.
     flags += checks.check_employer_conflicts(docs, row)
 
     # 6. Decide. Always attach the proposed change set, even when review is needed.
     life_labels = [f"{lc['type']} ({lc['amount_text']})" if lc.get("amount_text") else lc["type"]
                    for lc in lifes]
     changes = {"docs_received": [checks.doc_label(d) for d in attached],
-               "docs_missing": missing, "life_changes": life_labels}
+               "docs_missing": missing, "life_changes": life_labels,
+               # set only if a person approves; last year's employer is never changed
+               "current_employer": checks.proposed_current_employer(docs, row)}
     status = "needs review" if flags else "proposed update"
     return _result(email, mode, status, flags, row, clean, dropped, changes,
                    temp=ext.get("temperature_applied"))
@@ -146,7 +153,8 @@ def already_approved(email_id: str, audit_path=None) -> bool:
 
 def approve(email: dict, changes: dict, edited: bool = False,
             tracker_path=None, audit_path=None) -> dict:
-    """Apply human-approved changes. Append-only (see checks.apply_changes), idempotent per email."""
+    """Apply human-approved changes: list fields are appended to, current_employer may be set (see
+    checks.apply_changes). Idempotent per email, and every change is logged with before and after."""
     tracker_path = tracker_path or config.TRACKER_CSV
     audit_path = audit_path or config.AUDIT_LOG_CSV
     if already_approved(email["id"], audit_path):
@@ -159,7 +167,8 @@ def approve(email: dict, changes: dict, edited: bool = False,
     attachments = email.get("attachments", [])
     removals = checks.find_removals(row, changes, attachments)
     new_row = checks.apply_changes(row, changes, attachments)
-    diff = {f: {"before": row[f], "after": new_row[f]} for f in config.LIST_FIELDS if row[f] != new_row[f]}
+    diff = {f: {"before": row[f], "after": new_row[f]}
+            for f in config.LIST_FIELDS + config.SET_FIELDS if row[f] != new_row[f]}
 
     tracker = [new_row if r["client_id"] == row["client_id"] else r for r in tracker]
     with open(tracker_path, "w", newline="", encoding="utf-8") as f:

@@ -1,5 +1,6 @@
 """Tests for pipeline.py (no real API calls, tracker/audit written to a temp folder)."""
 import csv
+import json
 import sys
 from pathlib import Path
 
@@ -130,3 +131,55 @@ def test_w2_on_file_from_same_employer_is_not_missing():
     email = {"id": "X2", "from": "maria@example.com", "attachments": [],
              "body": "I started at Beta Corp again. The W-2 from Beta Corp is coming soon."}
     assert pipeline.process_email(email, mode="rules")["changes"]["docs_missing"] == []
+
+
+# ---------- Maria says her new employer is Acme ----------
+
+def test_e01_proposes_acme_as_the_current_employer_and_e02_proposes_none():
+    assert run("E01")["changes"]["current_employer"] == "Acme"
+    assert run("E02")["changes"]["current_employer"] is None             # no employer on a mortgage form
+
+
+def test_approving_maria_sets_current_employer_and_keeps_last_year(tmp_data):
+    tracker, audit = tmp_data
+    email = pipeline.load_email("E01")
+    out = pipeline.approve(email, run("E01")["changes"], tracker_path=tracker, audit_path=audit)
+    assert out["ok"] and out["diff"]["current_employer"] == {"before": "", "after": "Acme"}
+    maria = next(r for r in pipeline.load_tracker(tracker) if r["client_id"] == "C01")
+    assert maria["current_employer"] == "Acme"
+    assert maria["employer_last_year"] == "Beta Corp"                    # last year's employer is history
+    logged = [json.loads(r["diff"]) for r in pipeline._read_audit(audit) if r["action"] == "approve"]
+    assert logged[0]["changes"]["current_employer"] == {"before": "", "after": "Acme"}   # old and new value logged
+
+
+def test_approving_twice_does_not_change_anything_more(tmp_data):
+    tracker, audit = tmp_data
+    email, changes = pipeline.load_email("E01"), run("E01")["changes"]
+    pipeline.approve(email, changes, tracker_path=tracker, audit_path=audit)
+    once = tracker.read_bytes()
+    assert not pipeline.approve(email, changes, tracker_path=tracker, audit_path=audit)["ok"]
+    assert tracker.read_bytes() == once
+
+
+def test_after_approval_the_same_employer_is_no_longer_flagged(tmp_data):
+    tracker, audit = tmp_data
+    pipeline.approve(pipeline.load_email("E01"), run("E01")["changes"], tracker_path=tracker, audit_path=audit)
+    again = pipeline.process_email(pipeline.load_email("E01"), mode="rules", tracker=pipeline.load_tracker(tracker))
+    assert "employer_conflict" not in [f["code"] for f in again["flags"]]
+    assert again["changes"]["current_employer"] is None
+
+
+def test_edit_can_blank_out_or_change_the_employer(tmp_data):
+    tracker, audit = tmp_data
+    email = pipeline.load_email("E06")                                   # Raj: Initech differs from Globex
+    changes = dict(run("E06")["changes"], current_employer=None)         # staff cleared the box in Edit
+    pipeline.approve(email, changes, edited=True, tracker_path=tracker, audit_path=audit)
+    raj = next(r for r in pipeline.load_tracker(tracker) if r["client_id"] == "C06")
+    assert raj["current_employer"] == ""
+
+
+def test_an_old_tracker_file_without_the_column_still_loads(tmp_path):
+    old = tmp_path / "old.csv"
+    old.write_text("client_id,name,email,tax_year,employer_last_year,docs_received,docs_missing,life_changes,"
+                   "next_action\nC01,Maria Lopez,maria@example.com,2025,Beta Corp,,,,x\n", encoding="utf-8")
+    assert pipeline.load_tracker(old)[0]["current_employer"] == ""

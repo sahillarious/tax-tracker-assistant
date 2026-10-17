@@ -208,3 +208,43 @@ def test_life_change_without_rule_is_flagged():
 
 def test_sender_address_parsing():
     assert checks.sender_address("Maria Lopez <Maria@Example.com>") == "maria@example.com"
+
+
+# ---------- current employer: the one value approval may set ----------
+
+def test_proposed_current_employer_only_when_it_is_really_new():
+    docs = [{"type": "W-2", "employer": "Acme", "quote": "x"}]
+    assert checks.proposed_current_employer(docs, {"employer_last_year": "Beta Corp"}) == "Acme"
+    same_as_last_year = [{"type": "W-2", "employer": "Beta", "quote": "x"}]
+    assert checks.proposed_current_employer(same_as_last_year, {"employer_last_year": "Beta Corp"}) is None
+    row = {"employer_last_year": "Beta Corp", "current_employer": "Acme"}
+    assert checks.proposed_current_employer(docs, row) is None            # already on file
+    assert checks.proposed_current_employer([{"type": "1098", "quote": "x"}], row) is None
+
+
+def test_employer_matching_the_current_employer_is_not_a_conflict():
+    row = {"employer_last_year": "Beta Corp", "current_employer": "Acme"}
+    assert checks.check_employer_conflicts([{"type": "W-2", "employer": "Acme Inc.", "quote": "x"}], row) == []
+    flags = checks.check_employer_conflicts([{"type": "W-2", "employer": "Zeta", "quote": "x"}], row)
+    assert flags[0]["code"] == "employer_conflict"
+    assert "Beta Corp" in flags[0]["message"] and "Acme" in flags[0]["message"]   # names both employers on file
+
+
+def test_apply_changes_sets_current_employer_and_never_touches_last_years():
+    row = {"employer_last_year": "Beta Corp", "current_employer": "", "docs_received": "W-2 (Beta Corp)"}
+    updated = checks.apply_changes(row, {"current_employer": "Acme", "docs_received": ["W-2 (Acme)"]})
+    assert updated["current_employer"] == "Acme"
+    assert updated["employer_last_year"] == "Beta Corp"                   # history stays
+    assert updated["docs_received"] == "W-2 (Beta Corp); W-2 (Acme)"
+    assert row["current_employer"] == ""                                  # the original row is untouched
+
+
+def test_empty_current_employer_means_leave_it_unchanged():
+    row = {"employer_last_year": "Beta Corp", "current_employer": "Acme"}
+    for nothing in (None, "", "   "):
+        assert checks.apply_changes(row, {"current_employer": nothing})["current_employer"] == "Acme"
+
+
+def test_last_years_employer_still_cannot_be_set():
+    with pytest.raises(ValueError):
+        checks.apply_changes({"employer_last_year": "Beta Corp"}, {"employer_last_year": "Acme"})

@@ -5,7 +5,7 @@ The LLM (or the rules-only extractor) only PROPOSES. These functions decide what
 import re
 from email.utils import parseaddr
 
-from config import DOC_TYPES, LIFE_CHANGE_TYPES, LIST_FIELDS
+from config import DOC_TYPES, LIFE_CHANGE_TYPES, LIST_FIELDS, SET_FIELDS
 
 # How each document type might be written in an email or a filename.
 # (?<![a-z0-9]) / (?![a-z0-9]) = "not part of a longer word", so "1098" does not match "1098-E".
@@ -205,17 +205,35 @@ def employer_key(name: str) -> str:
     return _employer_key(name)
 
 
+def _is_known_employer(emp: str, tracker_row: dict) -> bool:
+    """True if the employer matches last year's employer or the current employer already on file."""
+    known = [tracker_row.get("employer_last_year", ""), tracker_row.get("current_employer", "")]
+    return any(k and _employer_key(emp) == _employer_key(k) for k in known)
+
+
 def check_employer_conflicts(documents: list, tracker_row: dict) -> list:
-    """Flag (never overwrite) when the email's employer differs from last year's."""
+    """Flag when the email's employer is neither last year's nor the current one on file.
+    The flag asks a person to confirm; approving then records the new current employer."""
     last = tracker_row.get("employer_last_year", "")
+    current = tracker_row.get("current_employer", "")
     flags = []
     for doc in documents:
         emp = doc.get("employer")
-        if emp and last and _employer_key(emp) != _employer_key(last):
-            flags.append(flag("employer_conflict",
-                              f"Employer differs from last year ({last} → {emp}). "
-                              "Confirm this is a job change."))
+        if emp and last and not _is_known_employer(emp, tracker_row):
+            where = (f"last year ({last} → {emp}) and from the current employer on file ({current})"
+                     if current else f"last year ({last} → {emp})")
+            flags.append(flag("employer_conflict", f"Employer differs from {where}. Confirm this is a job change."))
     return flags
+
+
+def proposed_current_employer(documents: list, tracker_row: dict):
+    """The employer to record as current if a person approves: the first employer named on a W-2 that is
+    neither last year's nor the current one on file. None when there is nothing to change."""
+    for doc in documents:
+        emp = doc.get("employer")
+        if emp and tracker_row.get("employer_last_year") and not _is_known_employer(emp, tracker_row):
+            return emp
+    return None
 
 
 # ---------- step 8: append, never overwrite ----------
@@ -252,13 +270,20 @@ def find_removals(row: dict, changes: dict, attachments) -> list:
 
 
 def apply_changes(row: dict, changes: dict, attachments=()) -> dict:
-    """Return a copy of the tracker row with changes appended. Only list fields are allowed.
-    Nothing is replaced; the only removal is described in find_removals()."""
+    """Return a copy of the tracker row with changes applied.
+    List fields are only appended to. The one single-value field (current_employer) can be set, and
+    only to a non-empty value. Anything else, such as employer_last_year, is refused.
+    The only removal is described in find_removals()."""
     updated = dict(row)
-    for field, items in changes.items():
-        if field not in LIST_FIELDS:
-            raise ValueError(f"Refusing to change '{field}': only list fields can be appended to.")
-        updated[field] = append_to_list_field(row.get(field, ""), items)
+    for field, value in changes.items():
+        if field in LIST_FIELDS:
+            updated[field] = append_to_list_field(row.get(field, ""), value)
+        elif field in SET_FIELDS:
+            if value and str(value).strip():
+                updated[field] = str(value).strip()
+        else:
+            raise ValueError(f"Refusing to change '{field}': only list fields can be appended to "
+                             f"and {SET_FIELDS} can be set.")
     gone = {m.lower() for m in find_removals(row, changes, attachments)}
     if gone:
         kept = [m for m in split_list(updated.get("docs_missing", "")) if m.lower() not in gone]

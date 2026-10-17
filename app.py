@@ -290,6 +290,11 @@ def change_lines(res: dict, email: dict) -> list:
         for item in res["changes"][field]:
             if item.lower() not in have:
                 lines.append(("add", f"{FIELD_NAMES[field]}: {item}"))
+    new_employer = res["changes"].get("current_employer")
+    if new_employer and new_employer != client.get("current_employer", ""):
+        last = client.get("employer_last_year", "")
+        keep = f" (last year's employer, {last}, stays as it is)" if last else ""
+        lines.append(("add", f"Current employer: {new_employer}{keep}"))
     for item in checks.find_removals(client, res["changes"], email["attachments"]):
         lines.append(("del", f"No longer needed from client: {item} (matching file received)"))
     return lines
@@ -341,8 +346,7 @@ def edit_dialog(eid: str):
     res = get_result(eid)
     client = res["client"]
     st.caption("Click the x on anything you do not want added. To add your own entry, click in a box, "
-               "type it and press Enter. Everything is added to the existing tracker values; "
-               "nothing already in the tracker is replaced.")
+               "type it and press Enter. The three lists are only added to, never replaced.")
     edited = {}
     for f in config.LIST_FIELDS:
         options = list(dict.fromkeys(res["changes"][f]))
@@ -351,6 +355,13 @@ def edit_dialog(eid: str):
         st.markdown(f'<div class="muted" style="margin:-10px 0 8px">Already in tracker: '
                     f'{html.escape(client[f] or "(empty)")}</div>', unsafe_allow_html=True)
         edited[f] = [i.strip() for i in picked if i.strip()]
+    current_now, last = client.get("current_employer", ""), client.get("employer_last_year", "")
+    employer = st.text_input("Current employer", value=res["changes"].get("current_employer") or "",
+                             key=f"ce_{eid}", placeholder="Leave empty to keep it as it is")
+    st.markdown('<div class="muted" style="margin:-10px 0 8px">' + html.escape(
+        f"Currently on file: {current_now or '(empty)'}. Last year's employer ({last or 'none'}) is never changed.")
+        + "</div>", unsafe_allow_html=True)
+    edited["current_employer"] = employer.strip() or None
     reviewed = True
     if res["flags"]:  # same gate as the main panel, repeated here because the popup hides that panel
         reviewed = st.checkbox("I have reviewed the flags", key=f"revd_{eid}",
@@ -568,8 +579,9 @@ with right:
             if lines:
                 st.markdown("".join(f'<div class="change change-{k}">{html.escape(t)}</div>' for k, t in lines),
                             unsafe_allow_html=True)
-                st.markdown('<div class="muted" style="margin-top:4px">Added to existing entries. '
-                            'Nothing is overwritten.</div>', unsafe_allow_html=True)
+                st.markdown('<div class="muted" style="margin-top:4px">' + html.escape(
+                    "Lists are added to, never replaced. Last year's employer is never changed.") + "</div>",
+                            unsafe_allow_html=True)
             else:
                 st.markdown('<div class="muted">Nothing new to add: already recorded.</div>', unsafe_allow_html=True)
 

@@ -246,3 +246,31 @@ def test_dialog_has_no_status_line_and_no_question_box(sandbox):
         assert "The client asked this question" not in text and "was not given it" not in text
     real = open_reply_dialog(start(), "E04")        # E04 has a client question: still no box for it
     assert "The client asked" not in " ".join(m.value for m in real.markdown)
+
+
+# ---------- current employer on screen ----------
+
+def test_changes_list_shows_the_new_current_employer(sandbox):
+    at = start()
+    button(at, "pick_E01").click().run()
+    text = page_text(at)
+    assert "Current employer: Acme (last year's employer, Beta Corp, stays as it is)" in text
+
+
+def test_edit_popup_has_a_current_employer_box_prefilled_with_the_proposal(sandbox):
+    at = start()
+    button(at, "pick_E01").click().run()
+    button(at, "edit_E01").click().run()
+    assert not at.exception
+    box = at.text_input(key="ce_E01")
+    assert box.label == "Current employer" and box.value == "Acme"
+
+
+def test_approving_in_the_app_sets_current_employer(sandbox):
+    tracker, audit = sandbox
+    at = start()
+    button(at, "pick_E01").click().run()
+    at.checkbox(key="rev_E01").check().run()
+    button(at, "app_E01").click().run()
+    maria = next(r for r in pipeline.load_tracker(tracker) if r["client_id"] == "C01")
+    assert (maria["current_employer"], maria["employer_last_year"]) == ("Acme", "Beta Corp")

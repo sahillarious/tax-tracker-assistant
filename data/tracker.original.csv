@@ -1,9 +1,9 @@
-client_id,name,email,tax_year,employer_last_year,docs_received,docs_missing,life_changes,next_action
-C01,Maria Lopez,maria@example.com,2025,Beta Corp,W-2 (Beta Corp),,,Awaiting client documents
-C02,James Carter,james.carter@example.com,2025,Northwind Ltd,W-2 (Northwind Ltd),,,Awaiting client documents
-C03,Priya Nair,priya.nair@example.com,2025,Contoso Labs,W-2 (Contoso Labs),,,Awaiting client documents
-C04,Tom Becker,tom.becker@example.com,2025,Fabrikam Inc,W-2 (Fabrikam Inc),,,Awaiting client documents
-C05,Linda Okafor,linda.okafor@example.com,2025,Tailspin Toys,,,,Awaiting client documents
-C06,Raj Patel,raj.patel@example.com,2025,Globex Inc,W-2 (Globex Inc),,,Awaiting client documents
-C07,Sofia Marino,sofia.marino@example.com,2025,Umbrella Corp,,,,Awaiting client documents
-C08,Daniel Kim,daniel.kim@example.com,2025,Hooli,W-2 (Hooli),,,Awaiting client documents
+client_id,name,email,tax_year,employer_last_year,current_employer,docs_received,docs_missing,life_changes,next_action
+C01,Maria Lopez,maria@example.com,2025,Beta Corp,,W-2 (Beta Corp),,,Awaiting client documents
+C02,James Carter,james.carter@example.com,2025,Northwind Ltd,,W-2 (Northwind Ltd),,,Awaiting client documents
+C03,Priya Nair,priya.nair@example.com,2025,Contoso Labs,,W-2 (Contoso Labs),,,Awaiting client documents
+C04,Tom Becker,tom.becker@example.com,2025,Fabrikam Inc,,W-2 (Fabrikam Inc),,,Awaiting client documents
+C05,Linda Okafor,linda.okafor@example.com,2025,Tailspin Toys,,,,,Awaiting client documents
+C06,Raj Patel,raj.patel@example.com,2025,Globex Inc,,W-2 (Globex Inc),,,Awaiting client documents
+C07,Sofia Marino,sofia.marino@example.com,2025,Umbrella Corp,,,,,Awaiting client documents
+C08,Daniel Kim,daniel.kim@example.com,2025,Hooli,,W-2 (Hooli),,,Awaiting client documents

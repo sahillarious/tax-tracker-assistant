@@ -36,3 +36,7 @@ LIFE_CHANGE_TYPES = [
 
 # Tracker columns that hold lists (stored as "a; b; c"). Approval may only APPEND to these.
 LIST_FIELDS = ["docs_received", "docs_missing", "life_changes"]
+# The only single-value column approval may change: the client's CURRENT employer. A person approving a
+# job change sets it, and the audit log records the old and new value. employer_last_year is history and
+# is never changed.
+SET_FIELDS = ["current_employer"]
