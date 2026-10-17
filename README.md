@@ -32,7 +32,7 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-**2. Add your key (optional)**
+**2. Add your key**
 
 ```
 copy .env.example .env            # macOS / Linux: cp .env.example .env
