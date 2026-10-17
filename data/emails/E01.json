@@ -1,0 +1,7 @@
+{
+  "id": "E01",
+  "from": "Maria Lopez <maria@example.com>",
+  "subject": "W2 attached",
+  "body": "Hi Sarah,\n\nHope your well! Attaching my W2 from Acme. Also I started freelancing in June (graphic design mostly) and made about $5k so far. Let me know if you need anything else for it.\n\nThanks,\nMaria\n\nSent from my iPhone",
+  "attachments": ["W2_Acme.pdf"]
+}

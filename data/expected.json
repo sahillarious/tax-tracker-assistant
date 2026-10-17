@@ -1,0 +1,150 @@
+{
+  "_notes": "Written BEFORE any pipeline code. Flag codes: unknown_sender, attachment_claimed_but_none, document_without_attachment, unidentified_attachment, employer_conflict, vague_documents, no_rule_for_life_change, client_question, possible_prompt_injection. expected_documents = documents the client MENTIONS (not rule-derived). expected_docs_missing = what the rules say is still outstanding.",
+  "E01": {
+    "level": 2,
+    "expected_documents": [
+      "W-2"
+    ],
+    "expected_life_changes": [
+      "freelance income"
+    ],
+    "expected_flags": [
+      "employer_conflict"
+    ],
+    "expected_docs_missing": [
+      "1099-NEC (if issued)",
+      "Income and expense summary"
+    ],
+    "expected_status": "needs review"
+  },
+  "E02": {
+    "level": 1,
+    "expected_documents": [
+      "1098"
+    ],
+    "expected_life_changes": [
+      "mortgage"
+    ],
+    "expected_flags": [],
+    "expected_docs_missing": [],
+    "expected_status": "proposed update"
+  },
+  "E03": {
+    "level": 1,
+    "expected_documents": [
+      "1099-B"
+    ],
+    "expected_life_changes": [
+      "sold stock"
+    ],
+    "expected_flags": [],
+    "expected_docs_missing": [
+      "1099-B"
+    ],
+    "expected_status": "proposed update"
+  },
+  "E04": {
+    "level": 3,
+    "expected_documents": [],
+    "expected_life_changes": [
+      "sold stock",
+      "marriage"
+    ],
+    "expected_flags": [
+      "vague_documents",
+      "no_rule_for_life_change",
+      "client_question"
+    ],
+    "expected_docs_missing": [
+      "1099-B"
+    ],
+    "expected_status": "needs review"
+  },
+  "E05": {
+    "level": 3,
+    "expected_documents": [],
+    "expected_life_changes": [],
+    "expected_flags": [
+      "attachment_claimed_but_none"
+    ],
+    "expected_docs_missing": [],
+    "expected_status": "needs review"
+  },
+  "E06": {
+    "level": 2,
+    "expected_documents": [
+      "W-2"
+    ],
+    "expected_life_changes": [],
+    "expected_flags": [
+      "employer_conflict"
+    ],
+    "expected_docs_missing": [],
+    "expected_status": "needs review"
+  },
+  "E07": {
+    "level": 3,
+    "expected_documents": [
+      "W-2",
+      "1098-E"
+    ],
+    "expected_life_changes": [
+      "new employer",
+      "student loan interest"
+    ],
+    "expected_flags": [
+      "employer_conflict"
+    ],
+    "expected_docs_missing": [
+      "1098-E"
+    ],
+    "expected_status": "needs review"
+  },
+  "E08": {
+    "level": 1,
+    "expected_documents": [],
+    "expected_life_changes": [],
+    "expected_flags": [
+      "unknown_sender"
+    ],
+    "expected_docs_missing": [],
+    "expected_status": "needs review"
+  },
+  "E09": {
+    "level": 2,
+    "expected_documents": [],
+    "expected_life_changes": [],
+    "expected_flags": [
+      "unidentified_attachment"
+    ],
+    "expected_docs_missing": [],
+    "expected_status": "needs review"
+  },
+  "E10": {
+    "level": 3,
+    "expected_documents": [],
+    "expected_life_changes": [],
+    "expected_flags": [
+      "client_question",
+      "possible_prompt_injection"
+    ],
+    "expected_docs_missing": [],
+    "expected_status": "needs review"
+  },
+  "E11": {
+    "level": 2,
+    "expected_documents": [
+      "W-2"
+    ],
+    "expected_life_changes": [
+      "new employer"
+    ],
+    "expected_flags": [
+      "employer_conflict"
+    ],
+    "expected_docs_missing": [
+      "W-2 (Acme Robotics)"
+    ],
+    "expected_status": "needs review"
+  }
+}

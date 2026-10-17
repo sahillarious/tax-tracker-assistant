@@ -1,0 +1,8 @@
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+data/raw_llm/
+data/audit_log.csv
+streamlit.log
+VIDEO_OUTLINE.md
